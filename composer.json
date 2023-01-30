@@ -1,0 +1,16 @@
+{
+    "name": "anhduc/proxy-check",
+    "autoload": {
+        "psr-4": {
+            "Anhduc\\ProxyCheck\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "anhduc"
+        }
+    ],
+    "require": {
+        "ext-curl": "*"
+    }
+}

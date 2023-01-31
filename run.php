@@ -1,14 +1,9 @@
 <?php
 
-/** Library */
-require_once('vendor/autoload.php');
-//$climate = new League\CLImate\CLImate;
-//require_once('src/config.php');
-//
+require 'vendor/autoload.php';
+
 $proxy_valid_file = "/home/anhduc/Work/htdocs/proxy-check/proxy_valid.txt";
 $proxy_invalid_file = "/home/anhduc/Work/htdocs/proxy-check/proxy_invalid.txt";
-//$input_list = $climate->info()->input('File proxy?');
-//$proxy_file = $input_list->prompt();
 $proxy_file = "/home/anhduc/Work/htdocs/proxy-check/proxy_list.txt";
 //$climate->br()->info('Start check your proxy list ..');
 echo('Start check proxy list ..' . "\n");

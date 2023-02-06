@@ -274,13 +274,12 @@ class proxy
 }
 
 $client = new Client();
-$requests = function () {
+$requests = function ($total = 5) {
     $uri = 'http://127.0.0.1:8126/guzzle-server/perf';
     for ($i = 0; $i < 5; $i++) {
         yield new Request('GET', $uri);
     }
 };
-echo"<pre>";print_r($requests);
 $pool = new Pool($client, $requests(100), [
     'concurrency' => 5,
     'fulfilled' => function (Response $response, $index) {

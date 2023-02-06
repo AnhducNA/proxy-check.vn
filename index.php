@@ -51,9 +51,7 @@ if (isset($options['h']) || isset($options["http"])):
     $proxyObject->checkProxySocks5();
 endif;
 
-
 if (isset($options['u'])):
-
     $proxyObject->setUrlToTest($options['u']);
     echo('Start check proxy list ..' . "\n");
     $proxyObject->checkProxy();

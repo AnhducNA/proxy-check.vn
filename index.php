@@ -4,19 +4,23 @@ require __DIR__ . '/vendor/autoload.php';
 
 use Anhduc\ProxyCheck\proxy;
 
-
-$short_options = "h::s::S::H::u:f:";
-$long_options = ["help::", "socks4::", "socks5::", "http::", "url=TARGET:", "proxies-file:"];
+$short_options = "h::s::S::H::a::u:f:o:";
+$long_options = ["help::", "socks4::", "socks5::", "http::","all::", "url=TARGET:", "proxies-file:", "output"];
 $options = getopt($short_options, $long_options);
 //var_dump($options);
 $proxyObject = new proxy();
 $proxyObject->setProxyFile("/home/anhduc/Work/htdocs/proxy-check/proxy_list.txt");
 $proxyObject->setProxyValidFile("/home/anhduc/Work/htdocs/proxy-check/proxy_valid.txt");
 $proxyObject->setProxyInvalidFile("/home/anhduc/Work/htdocs/proxy-check/proxy_invalid.txt");
-
+$proxyObject->setUrlToTest("http://google.fr");
 if (isset($options['f']) || isset($options["proxyFile"])):
     $proxyObject->setProxyFile($options['f']);
 endif;
+
+if (isset($options['o']) || isset($options["output"])):
+    $proxyObject->setProxyValidFile($options['o']);
+endif;
+
 if (isset($options['h']) || isset($options["help"])):
     echo "        -h, --help                   Show this help
         -s, --socks4                 Test socks4 proxies
@@ -46,9 +50,14 @@ if (isset($options['S']) || isset($options["socks5"])):
     echo('Start check proxy list ..' . "\n");
     $proxyObject->checkProxySocks5();
 endif;
-if (isset($options['h']) || isset($options["http"])):
+
+if (isset($options['H']) || isset($options["http"])):
     echo('Start check proxy list ..' . "\n");
-    $proxyObject->checkProxySocks5();
+    $proxyObject->checkProxyHttp();
+endif;
+if (isset($options['a']) || isset($options["all"])):
+    echo('Start check proxy list ..' . "\n");
+    $proxyObject->checkProxy();
 endif;
 
 if (isset($options['u'])):

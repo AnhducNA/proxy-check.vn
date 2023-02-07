@@ -5,9 +5,7 @@ namespace Anhduc\ProxyCheck;
 use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Pool;
-use GuzzleHttp\Psr7\Request;
-use GuzzleHttp\Psr7\Response;
+
 class proxy
 {
     private string $proxy_valid_file;
@@ -122,42 +120,22 @@ class proxy
             $fh2 = fopen($this->proxy_valid_file, 'a');
             foreach ($data as $proxy) {
                 $curl = curl_init();
-                if (isset($this->url_to_test)):
-                    echo $this->url_to_test;
-                    CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
-                    CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
-                    CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                    CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
-                    CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
-                    CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
-                    $result = curl_exec($curl);
-                    curl_close($curl);
+                CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
+                CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
+                CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
+                CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
+                CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
+                CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
+                $result = curl_exec($curl);
+                curl_close($curl);
 
-                    if ($result == false) {
-                        fwrite($fh1, $proxy . "\n");
-                        echo 'false' . "\n";
-                    } else {
-                        fwrite($fh2, $proxy . "\n");
-                        echo 'true' . "\n";
-                    }
-                else:
-                    CURL_SETOPT($curl, CURLOPT_URL, "http://google.fr");
-                    CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
-                    CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                    CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
-                    CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
-                    CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
-                    $result = curl_exec($curl);
-                    curl_close($curl);
-
-                    if ($result == false) {
-                        fwrite($fh1, $proxy . "\n");
-                        echo 'false' . "\n";
-                    } else {
-                        fwrite($fh2, $proxy . "\n");
-                        echo 'true' . "\n";
-                    }
-                endif;
+                if ($result == false) {
+                    fwrite($fh1, $proxy . "\n");
+                    echo 'false' . "\n";
+                } else {
+                    fwrite($fh2, $proxy . "\n");
+                    echo 'true' . "\n";
+                }
             }
             fclose($fh1);
             fclose($fh2);
@@ -176,7 +154,7 @@ class proxy
             foreach ($data as $proxy) {
                 if (str_contains($proxy, 'socks4')):
                     $curl = curl_init();
-                    CURL_SETOPT($curl, CURLOPT_URL, "http://google.fr");
+                    CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
                     CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
                     CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
                     CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
@@ -187,10 +165,10 @@ class proxy
 
                     if ($result == false) {
                         fwrite($fh1, $proxy . "\n");
-                        echo $proxy . ' - false' . "\n";
+                        echo $proxy . ' => false' . "\n";
                     } else {
                         fwrite($fh2, $proxy . "\n");
-                        echo $proxy . ' - true' . "\n";
+                        echo $proxy . ' => true' . "\n";
                     }
                 endif;
             }
@@ -211,7 +189,7 @@ class proxy
             foreach ($data as $proxy) {
                 if (str_contains($proxy, 'socks5')):
                     $curl = curl_init();
-                    CURL_SETOPT($curl, CURLOPT_URL, "http://google.fr");
+                    CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
                     CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
                     CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
                     CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
@@ -222,10 +200,10 @@ class proxy
 
                     if ($result == false) {
                         fwrite($fh1, $proxy . "\n");
-                        echo $proxy . ' - false' . "\n";
+                        echo $proxy . ' => false' . "\n";
                     } else {
                         fwrite($fh2, $proxy . "\n");
-                        echo $proxy . ' - true' . "\n";
+                        echo $proxy . ' => true' . "\n";
                     }
                 endif;
             }
@@ -243,24 +221,21 @@ class proxy
             $data = explode("\n", $file);
             $fh1 = fopen($this->proxy_invalid_file, 'a');
             $fh2 = fopen($this->proxy_valid_file, 'a');
+            $client = new Client(['base_uri' => 'http://httpbin.org/']);
+            $client->request('GET', '/delay/5', ['connect_timeout' => 5]);
+
             foreach ($data as $proxy) {
                 if (str_contains($proxy, 'http')):
-                    $curl = curl_init();
-                    CURL_SETOPT($curl, CURLOPT_URL, "http://google.fr");
-                    CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
-                    CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                    CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
-                    CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
-                    CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
-                    $result = curl_exec($curl);
-                    curl_close($curl);
-
-                    if ($result == false) {
-                        fwrite($fh1, $proxy . "\n");
-                        echo $proxy . ' - false' . "\n";
-                    } else {
+                    try {
+                        $response = $client->request('GET', '/', ['proxy' => $proxy]);
+                        if ($response == true) {
+                            echo $proxy . ' => true' . "\n";
+                            fwrite($fh2, $proxy . "\n");
+                        }
+                    } catch (RequestException $e) {
+                        echo $proxy . ' => false' . "\n";
                         fwrite($fh2, $proxy . "\n");
-                        echo $proxy . ' - true' . "\n";
+                        continue;
                     }
                 endif;
             }
@@ -272,20 +247,3 @@ class proxy
     }
 
 }
-
-$client = new Client();
-$requests = function ($total = 5) {
-    $uri = 'http://127.0.0.1:8126/guzzle-server/perf';
-    for ($i = 0; $i < 5; $i++) {
-        yield new Request('GET', $uri);
-    }
-};
-$pool = new Pool($client, $requests(100), [
-    'concurrency' => 5,
-    'fulfilled' => function (Response $response, $index) {
-        // this is delivered each successful response
-    },
-    'rejected' => function (RequestException $reason, $index) {
-        // this is delivered each failed request
-    },
-]);

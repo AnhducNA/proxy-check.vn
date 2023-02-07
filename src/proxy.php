@@ -131,10 +131,10 @@ class proxy
 
                 if ($result == false) {
                     fwrite($fh1, $proxy . "\n");
-                    echo 'false' . "\n";
+                    echo $proxy . ' => false' . "\n";
                 } else {
                     fwrite($fh2, $proxy . "\n");
-                    echo 'true' . "\n";
+                    echo $proxy . ' => true' . "\n";
                 }
             }
             fclose($fh1);

@@ -41,10 +41,10 @@ Check if proxies are working (http, socks4 & socks5)
 - Bước 3: Chọn file chứa proxy invalid: 
 
 ```
- php index.php -o /home/anhduc/Work/htdocs/proxy-check/proxy_invalid.txt
+ php index.php -i /home/anhduc/Work/htdocs/proxy-check/proxy_invalid.txt
 ```
 
--Bước 4: Chọn url check proxy :
+- Bước 4: Chọn url check proxy :
 
 ```
 php index.php -u http://google.fr 

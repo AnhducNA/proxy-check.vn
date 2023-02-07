@@ -11,7 +11,7 @@ Check if proxies are working (http, socks4 & socks5)
 -s, --socks4                 Test socks4 proxies
 -S, --socks5                 Test socks5 proxies
 -H, --http                   Test http proxies
--a, --a                      Test all proto if no proto is specified in input file
+-a, --all                    Test all proto if no proto is specified in input file
 -r, --randomize-file         Shuffle proxies files
 -t, --thread=NBR             Number of threads
 -T, --timeout=SEC            Set timeout (default 3 seconds)

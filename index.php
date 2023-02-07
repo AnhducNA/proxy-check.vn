@@ -15,22 +15,24 @@ $proxyObject->setProxyInvalidFile("/home/anhduc/Work/htdocs/proxy-check/proxy_in
 $proxyObject->setUrlToTest("http://google.fr");
 
 if (isset($options['h']) || isset($options["help"])):
-    echo "        -h, --help                   Show this help
-        -s, --socks4                 Test socks4 proxies
-        -S, --socks5                 Test socks5 proxies
-        -H, --http                   Test http proxies
-        -i, --ip                     Test all proto if no proto is specified in input file
-        -r, --randomize-file         Shuffle proxies files
-        -t, --thread=NBR             Number of threads
-        -T, --timeout=SEC            Set timeout (default 3 seconds)
-        -u, --url=TARGET             url to test proxies
-        -f, --proxies-file=FILE      File to check proxy
-        -m, --max-valid=NBR          Stop when NBR valid proxies are found
-        -U, --proxies-url=URL        url with proxies file
-        -p, --dis-progressbar        Disable progress bar
-        -g, --github                 use github.com/mmpx12/proxy-list
-        -o, --output=FILE            File to write valid proxies
-        -v, --version                Print version and exit
+    echo "        
+-h, --help                   Show this help
+-s, --socks4                 Test socks4 proxies
+-S, --socks5                 Test socks5 proxies
+-H, --http                   Test http proxies
+-a, --a                      Test all proto if no proto is specified in input file
+-r, --randomize-file         Shuffle proxies files
+-t, --thread=NBR             Number of threads
+-T, --timeout=SEC            Set timeout (default 3 seconds)
+-u, --url=TARGET             url to test proxies
+-f, --proxies-file=FILE      File to check proxy
+-m, --max-valid=NBR          Stop when NBR valid proxies are found
+-U, --proxies-url=URL        url with proxies file
+-p, --dis-progressbar        Disable progress bar
+-g, --github                 use github.com/mmpx12/proxy-list
+-o, --output-valid=FILE      File to write valid proxies
+-i, --output-invalid=FILE    File to write in valid proxies
+-v, --version                Print version and exit
     ";
 endif;
 
@@ -43,7 +45,7 @@ if (isset($options['o']) || isset($options["output-valid"])):
 endif;
 
 if (isset($options['i']) || isset($options["output-invalid"])):
-    $proxyObject->setProxyValidFile($options['o']);
+    $proxyObject->setProxyValidFile($options['i']);
 endif;
 
 if (isset($options['s']) || isset($options["socks4"])):

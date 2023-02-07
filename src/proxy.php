@@ -36,6 +36,7 @@ class proxy
      */
     public function getProxyInvalidFile(): string
     {
+        echo $this->proxy_invalid_file;
         return $this->proxy_invalid_file;
     }
 
@@ -116,8 +117,8 @@ class proxy
         try {
             $file = file_get_contents($this->proxy_file);
             $data = explode("\n", $file);
-            $fh1 = fopen($this->proxy_invalid_file, 'a');
-            $fh2 = fopen($this->proxy_valid_file, 'a');
+            $fh1 = fopen($this->getProxyInValidFile(), 'a');
+            $fh2 = fopen($this->getProxyValidFile(), 'a');
             foreach ($data as $proxy) {
                 $curl = curl_init();
                 CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);

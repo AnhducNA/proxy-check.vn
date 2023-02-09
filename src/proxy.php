@@ -20,6 +20,7 @@ class proxy
     private array $proxy_invalid;
     private string $url_to_test;
     private int $thread;
+    private int $timeout;
 
     /**
      * @return string
@@ -42,7 +43,6 @@ class proxy
      */
     public function getProxyInvalidFile(): string
     {
-        echo $this->proxy_invalid_file;
         return $this->proxy_invalid_file;
     }
 
@@ -134,197 +134,35 @@ class proxy
         $this->thread = $thread;
     }
 
-    public function checkProxy()
+    /**
+     * @return int
+     */
+    public function getTimeout(): int
     {
-        try {
-            $file = file_get_contents($this->proxy_file);
-            $data = explode("\n", $file);
-            $fh1 = fopen($this->proxy_invalid_file, 'a');
-            $fh2 = fopen($this->proxy_valid_file, 'a');
-            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
-
-            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
-                foreach ($data as $proxy) {
-                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
-                        try {
-                            $checkBool = 0;
-                            // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
-                            $result = $client->request('GET', '/', ['proxy' => $proxy]);
-                            if ($result == true) {
-                                $checkBool = 1;
-                            }
-                        } catch (ConnectException|ServerException|RequestException $e) {
-                            $checkBool = 0;
-                        }
-                        if ($checkBool) {
-                            echo $proxy . ' => true' . PHP_EOL;
-                            fwrite($fh2, $proxy . "\n");
-                        } else {
-                            echo $proxy . ' => false' . PHP_EOL;
-                            fwrite($fh1, $proxy . "\n");
-
-                        }
-                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
-                    };
-                }
-            };
-            $pool = new Pool($client, $requestGenerator($data), [
-                'concurrency' => $this->getThread(),
-                'fulfilled' => function (Response $response, $index) {
-                    // This callback is delivered each successful response
-                    // $index will be our special identifier we set when generating the request
-                    $json = json_decode((string)$response->getBody());
-                    // If these values don't match, something is very wrong
-                },
-                'rejected' => function (Exception $reason, $index) {
-                    // This callback is delivered each failed request
-                },
-            ]);
-            // Initiate the transfers and create a promise
-            $promise = $pool->promise();
-            // Force the pool of requests to complete
-            $promise->wait();
-
-            fclose($fh1);
-            fclose($fh2);
-        } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
-        }
+        return $this->timeout;
     }
 
-    public function checkProxySocks4()
+    /**
+     * @param int $timeout
+     */
+    public function setTimeout(int $timeout): void
     {
-        try {
-            $file = file_get_contents($this->proxy_file);
-            $data = explode("\n", $file);
-            $fh1 = fopen($this->proxy_invalid_file, 'a');
-            $fh2 = fopen($this->proxy_valid_file, 'a');
-            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
-
-            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
-                foreach ($data as $proxy) {
-                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
-                        if (str_contains($proxy, 'socks4')) {
-                            try {
-                                $checkBool = 0;
-                                // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
-                                $result = $client->request('GET', '/', ['proxy' => $proxy]);
-                                if ($result == true) {
-                                    $checkBool = 1;
-                                }
-                            } catch (ConnectException|ServerException|RequestException $e) {
-                                $checkBool = 0;
-                            }
-                            if ($checkBool) {
-                                echo $proxy . ' => true' . PHP_EOL;
-                                fwrite($fh2, $proxy . "\n");
-                            } else {
-                                echo $proxy . ' => false' . PHP_EOL;
-                                fwrite($fh1, $proxy . "\n");
-
-                            }
-                        }
-                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
-                    };
-                }
-            };
-            $pool = new Pool($client, $requestGenerator($data), [
-                'concurrency' => $this->getThread(),
-                'fulfilled' => function (Response $response, $index) {
-                    // This callback is delivered each successful response
-                    // $index will be our special identifier we set when generating the request
-                    $json = json_decode((string)$response->getBody());
-                    // If these values don't match, something is very wrong
-                },
-                'rejected' => function (Exception $reason, $index) {
-                    // This callback is delivered each failed request
-                },
-            ]);
-            // Initiate the transfers and create a promise
-            $promise = $pool->promise();
-            // Force the pool of requests to complete
-            $promise->wait();
-
-            fclose($fh1);
-            fclose($fh2);
-        } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
-        }
+        $this->timeout = $timeout;
     }
 
-    public function checkProxySocks5()
+    public function checkProxy($prototype='')
     {
         try {
             $file = file_get_contents($this->proxy_file);
             $data = explode("\n", $file);
-            $fh1 = fopen($this->proxy_invalid_file, 'a');
-            $fh2 = fopen($this->proxy_valid_file, 'a');
-            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
+            $fh1 = fopen($this->getProxyInvalidFile(), 'a');
+            $fh2 = fopen($this->getProxyValidFile(), 'a');
+            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => $this->getTimeout()]);
 
-            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
+            $requestGenerator = function ($data) use ($prototype, $client, $fh1, $fh2) {
                 foreach ($data as $proxy) {
-                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
-                        if (str_contains($proxy, 'socks5')) {
-                            try {
-                                $checkBool = 0;
-                                // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
-                                $result = $client->request('GET', '/', ['proxy' => $proxy]);
-                                if ($result == true) {
-                                    $checkBool = 1;
-                                }
-                            } catch (ConnectException|ServerException|RequestException $e) {
-                                $checkBool = 0;
-                            }
-                            if ($checkBool) {
-                                echo $proxy . ' => true' . PHP_EOL;
-                                fwrite($fh2, $proxy . "\n");
-                            } else {
-                                echo $proxy . ' => false' . PHP_EOL;
-                                fwrite($fh1, $proxy . "\n");
-
-                            }
-                        }
-                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
-                    };
-                }
-            };
-            $pool = new Pool($client, $requestGenerator($data), [
-                'concurrency' => $this->getThread(),
-                'fulfilled' => function (Response $response, $index) {
-                    // This callback is delivered each successful response
-                    // $index will be our special identifier we set when generating the request
-                    $json = json_decode((string)$response->getBody());
-                    // If these values don't match, something is very wrong
-                },
-                'rejected' => function (Exception $reason, $index) {
-                    // This callback is delivered each failed request
-                },
-            ]);
-            // Initiate the transfers and create a promise
-            $promise = $pool->promise();
-            // Force the pool of requests to complete
-            $promise->wait();
-
-            fclose($fh1);
-            fclose($fh2);
-        } catch (Exception $e) {
-            echo 'Caught exception: ', $e->getMessage(), "\n";
-        }
-    }
-
-    public function checkProxyHttp()
-    {
-        try {
-            $file = file_get_contents($this->proxy_file);
-            $data = explode("\n", $file);
-            $fh1 = fopen($this->proxy_invalid_file, 'a');
-            $fh2 = fopen($this->proxy_valid_file, 'a');
-            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
-
-            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
-                foreach ($data as $proxy) {
-                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
-                        if (str_contains($proxy, 'http')) {
+                    yield $proxy => function () use ($prototype, $client, $proxy, $fh1, $fh2) {
+                        if (str_contains($proxy, strtolower($prototype))) {
                             try {
                                 $checkBool = 0;
                                 // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);

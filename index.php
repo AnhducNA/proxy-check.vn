@@ -4,9 +4,9 @@ require __DIR__ . '/vendor/autoload.php';
 
 use Anhduc\ProxyCheck\proxy;
 
-$short_options = "h::s::S::H::a::u:f:o:i:t:";
-$long_options = ["help::", "socks4::", "socks5::", "http::", "all::", "url=TARGET:",
-    "proxies-file:", "output-valid:", "output-invalid:", "thread:"];
+$short_options = "h::s::S::H::a::u:f:o:i:t:T:";
+$long_options = ["help::", "socks4::", "socks5::", "http::", "all::", "url:",
+    "proxies-file:", "output-valid:", "output-invalid:", "thread:","timeout:"];
 $options = getopt($short_options, $long_options);
 //var_dump($options);
 $proxyObject = new proxy();
@@ -16,6 +16,7 @@ $proxyObject->setProxyInvalidFile("./proxy_invalid.txt");
 
 $proxyObject->setUrlToTest("http://google.fr");
 $proxyObject->setThread(5);
+$proxyObject->setTimeout(3);
 if (isset($options['h']) || isset($options["help"])):
     echo "        
 -h, --help                   Show this help
@@ -37,11 +38,34 @@ if (isset($options['h']) || isset($options["help"])):
 -v, --version                Print version and exit
     ";
 endif;
+
+if (isset($options['s']) || isset($options["socks4"])):
+    echo('Start check proxy list ..' . "\n");
+    $proxyObject->checkProxy($prototype = "socks4");
+endif;
+
+if (isset($options['S']) || isset($options["socks5"])):
+    echo('Start check proxy list ..' . "\n");
+    $proxyObject->checkProxy($prototype = "socks5");
+endif;
+
+if (isset($options['H']) || isset($options["http"])):
+    echo('Start check proxy list ..' . "\n");
+    $proxyObject->checkProxy($prototype = "http");
+endif;
 if (isset($options['t']) || isset($options["thread"])) {
     if (isset($options['t'])) {
         $proxyObject->setThread($options['t']);
     } else if (isset($options['thread'])) {
         $proxyObject->setThread($options['thread']);
+    }
+}
+
+if (isset($options['T']) || isset($options["timeout"])) {
+    if (isset($options['t'])) {
+        $proxyObject->setTimeout($options['T']);
+    } else if (isset($options['timeout'])) {
+        $proxyObject->setThread($options['timeout']);
     }
 }
 
@@ -57,20 +81,7 @@ if (isset($options['i']) || isset($options["output-invalid"])) {
     $proxyObject->setProxyInvalidFile($options['i']);
 }
 
-if (isset($options['s']) || isset($options["socks4"])):
-    echo('Start check proxy list ..' . "\n");
-    $proxyObject->checkProxySocks4();
-endif;
 
-if (isset($options['S']) || isset($options["socks5"])):
-    echo('Start check proxy list ..' . "\n");
-    $proxyObject->checkProxySocks5();
-endif;
-
-if (isset($options['H']) || isset($options["http"])):
-    echo('Start check proxy list ..' . "\n");
-    $proxyObject->checkProxyHttp();
-endif;
 
 if (isset($options['a']) || isset($options["all"])):
     echo('Start check proxy list ..' . "\n");

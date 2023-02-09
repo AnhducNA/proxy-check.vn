@@ -1,10 +1,15 @@
 <?php
 
 namespace Anhduc\ProxyCheck;
+require 'vendor/autoload.php';
 
 use Exception;
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ServerException;
+use GuzzleHttp\Pool;
+use GuzzleHttp\Psr7\Response;
 
 class proxy
 {
@@ -14,6 +19,7 @@ class proxy
     private array $proxy_valid;
     private array $proxy_invalid;
     private string $url_to_test;
+    private int $thread;
 
     /**
      * @return string
@@ -112,32 +118,73 @@ class proxy
         $this->url_to_test = $url_to_test;
     }
 
+    /**
+     * @return int
+     */
+    public function getThread(): int
+    {
+        return $this->thread;
+    }
+
+    /**
+     * @param int $thread
+     */
+    public function setThread(int $thread): void
+    {
+        $this->thread = $thread;
+    }
+
     public function checkProxy()
     {
         try {
             $file = file_get_contents($this->proxy_file);
             $data = explode("\n", $file);
-            $fh1 = fopen($this->getProxyInValidFile(), 'a');
-            $fh2 = fopen($this->getProxyValidFile(), 'a');
-            foreach ($data as $proxy) {
-                $curl = curl_init();
-                CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
-                CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
-                CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
-                CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
-                CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
-                $result = curl_exec($curl);
-                curl_close($curl);
+            $fh1 = fopen($this->proxy_invalid_file, 'a');
+            $fh2 = fopen($this->proxy_valid_file, 'a');
+            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
 
-                if ($result == false) {
-                    fwrite($fh1, $proxy . "\n");
-                    echo $proxy . ' => false' . "\n";
-                } else {
-                    fwrite($fh2, $proxy . "\n");
-                    echo $proxy . ' => true' . "\n";
+            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
+                foreach ($data as $proxy) {
+                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
+                        try {
+                            $checkBool = 0;
+                            // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
+                            $result = $client->request('GET', '/', ['proxy' => $proxy]);
+                            if ($result == true) {
+                                $checkBool = 1;
+                            }
+                        } catch (ConnectException|ServerException|RequestException $e) {
+                            $checkBool = 0;
+                        }
+                        if ($checkBool) {
+                            echo $proxy . ' => true' . PHP_EOL;
+                            fwrite($fh2, $proxy . "\n");
+                        } else {
+                            echo $proxy . ' => false' . PHP_EOL;
+                            fwrite($fh1, $proxy . "\n");
+
+                        }
+                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
+                    };
                 }
-            }
+            };
+            $pool = new Pool($client, $requestGenerator($data), [
+                'concurrency' => $this->getThread(),
+                'fulfilled' => function (Response $response, $index) {
+                    // This callback is delivered each successful response
+                    // $index will be our special identifier we set when generating the request
+                    $json = json_decode((string)$response->getBody());
+                    // If these values don't match, something is very wrong
+                },
+                'rejected' => function (Exception $reason, $index) {
+                    // This callback is delivered each failed request
+                },
+            ]);
+            // Initiate the transfers and create a promise
+            $promise = $pool->promise();
+            // Force the pool of requests to complete
+            $promise->wait();
+
             fclose($fh1);
             fclose($fh2);
         } catch (Exception $e) {
@@ -152,27 +199,52 @@ class proxy
             $data = explode("\n", $file);
             $fh1 = fopen($this->proxy_invalid_file, 'a');
             $fh2 = fopen($this->proxy_valid_file, 'a');
-            foreach ($data as $proxy) {
-                if (str_contains($proxy, 'socks4')):
-                    $curl = curl_init();
-                    CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
-                    CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
-                    CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                    CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
-                    CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
-                    CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
-                    $result = curl_exec($curl);
-                    curl_close($curl);
+            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
 
-                    if ($result == false) {
-                        fwrite($fh1, $proxy . "\n");
-                        echo $proxy . ' => false' . "\n";
-                    } else {
-                        fwrite($fh2, $proxy . "\n");
-                        echo $proxy . ' => true' . "\n";
-                    }
-                endif;
-            }
+            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
+                foreach ($data as $proxy) {
+                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
+                        if (str_contains($proxy, 'socks4')) {
+                            try {
+                                $checkBool = 0;
+                                // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
+                                $result = $client->request('GET', '/', ['proxy' => $proxy]);
+                                if ($result == true) {
+                                    $checkBool = 1;
+                                }
+                            } catch (ConnectException|ServerException|RequestException $e) {
+                                $checkBool = 0;
+                            }
+                            if ($checkBool) {
+                                echo $proxy . ' => true' . PHP_EOL;
+                                fwrite($fh2, $proxy . "\n");
+                            } else {
+                                echo $proxy . ' => false' . PHP_EOL;
+                                fwrite($fh1, $proxy . "\n");
+
+                            }
+                        }
+                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
+                    };
+                }
+            };
+            $pool = new Pool($client, $requestGenerator($data), [
+                'concurrency' => $this->getThread(),
+                'fulfilled' => function (Response $response, $index) {
+                    // This callback is delivered each successful response
+                    // $index will be our special identifier we set when generating the request
+                    $json = json_decode((string)$response->getBody());
+                    // If these values don't match, something is very wrong
+                },
+                'rejected' => function (Exception $reason, $index) {
+                    // This callback is delivered each failed request
+                },
+            ]);
+            // Initiate the transfers and create a promise
+            $promise = $pool->promise();
+            // Force the pool of requests to complete
+            $promise->wait();
+
             fclose($fh1);
             fclose($fh2);
         } catch (Exception $e) {
@@ -187,27 +259,52 @@ class proxy
             $data = explode("\n", $file);
             $fh1 = fopen($this->proxy_invalid_file, 'a');
             $fh2 = fopen($this->proxy_valid_file, 'a');
-            foreach ($data as $proxy) {
-                if (str_contains($proxy, 'socks5')):
-                    $curl = curl_init();
-                    CURL_SETOPT($curl, CURLOPT_URL, $this->url_to_test);
-                    CURL_SETOPT($curl, CURLOPT_PROXY, $proxy);
-                    CURL_SETOPT($curl, CURLOPT_PROXYTYPE, CURLPROXY_HTTP);
-                    CURL_SETOPT($curl, CURLOPT_TIMEOUT, 20);
-                    CURL_SETOPT($curl, CURLOPT_RETURNTRANSFER, True);
-                    CURL_SETOPT($curl, CURLOPT_FOLLOWLOCATION, True);
-                    $result = curl_exec($curl);
-                    curl_close($curl);
+            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
 
-                    if ($result == false) {
-                        fwrite($fh1, $proxy . "\n");
-                        echo $proxy . ' => false' . "\n";
-                    } else {
-                        fwrite($fh2, $proxy . "\n");
-                        echo $proxy . ' => true' . "\n";
-                    }
-                endif;
-            }
+            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
+                foreach ($data as $proxy) {
+                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
+                        if (str_contains($proxy, 'socks5')) {
+                            try {
+                                $checkBool = 0;
+                                // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
+                                $result = $client->request('GET', '/', ['proxy' => $proxy]);
+                                if ($result == true) {
+                                    $checkBool = 1;
+                                }
+                            } catch (ConnectException|ServerException|RequestException $e) {
+                                $checkBool = 0;
+                            }
+                            if ($checkBool) {
+                                echo $proxy . ' => true' . PHP_EOL;
+                                fwrite($fh2, $proxy . "\n");
+                            } else {
+                                echo $proxy . ' => false' . PHP_EOL;
+                                fwrite($fh1, $proxy . "\n");
+
+                            }
+                        }
+                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
+                    };
+                }
+            };
+            $pool = new Pool($client, $requestGenerator($data), [
+                'concurrency' => $this->getThread(),
+                'fulfilled' => function (Response $response, $index) {
+                    // This callback is delivered each successful response
+                    // $index will be our special identifier we set when generating the request
+                    $json = json_decode((string)$response->getBody());
+                    // If these values don't match, something is very wrong
+                },
+                'rejected' => function (Exception $reason, $index) {
+                    // This callback is delivered each failed request
+                },
+            ]);
+            // Initiate the transfers and create a promise
+            $promise = $pool->promise();
+            // Force the pool of requests to complete
+            $promise->wait();
+
             fclose($fh1);
             fclose($fh2);
         } catch (Exception $e) {
@@ -222,24 +319,52 @@ class proxy
             $data = explode("\n", $file);
             $fh1 = fopen($this->proxy_invalid_file, 'a');
             $fh2 = fopen($this->proxy_valid_file, 'a');
-            $client = new Client(['base_uri' => 'http://httpbin.org/']);
-            $client->request('GET', '/delay/5', ['connect_timeout' => 5]);
+            $client = new Client(['base_uri' => $this->getUrlToTest(), 'timeout' => 3.0]);
 
-            foreach ($data as $proxy) {
-                if (str_contains($proxy, 'http')):
-                    try {
-                        $response = $client->request('GET', '/', ['proxy' => $proxy]);
-                        if ($response == true) {
-                            echo $proxy . ' => true' . "\n";
-                            fwrite($fh2, $proxy . "\n");
+            $requestGenerator = function ($data) use ($client, $fh1, $fh2) {
+                foreach ($data as $proxy) {
+                    yield $proxy => function () use ($client, $proxy, $fh1, $fh2) {
+                        if (str_contains($proxy, 'http')) {
+                            try {
+                                $checkBool = 0;
+                                // $client->request('GET', '/delay/5', ['connect_timeout' => 3.14]);
+                                $result = $client->request('GET', '/', ['proxy' => $proxy]);
+                                if ($result == true) {
+                                    $checkBool = 1;
+                                }
+                            } catch (ConnectException|ServerException|RequestException $e) {
+                                $checkBool = 0;
+                            }
+                            if ($checkBool) {
+                                echo $proxy . ' => true' . PHP_EOL;
+                                fwrite($fh2, $proxy . "\n");
+                            } else {
+                                echo $proxy . ' => false' . PHP_EOL;
+                                fwrite($fh1, $proxy . "\n");
+
+                            }
                         }
-                    } catch (RequestException $e) {
-                        echo $proxy . ' => false' . "\n";
-                        fwrite($fh2, $proxy . "\n");
-                        continue;
-                    }
-                endif;
-            }
+                        return $client->getAsync('/get?q=' . $proxy, ['headers' => ['X-Search-Term' => $proxy]]);
+                    };
+                }
+            };
+            $pool = new Pool($client, $requestGenerator($data), [
+                'concurrency' => $this->getThread(),
+                'fulfilled' => function (Response $response, $index) {
+                    // This callback is delivered each successful response
+                    // $index will be our special identifier we set when generating the request
+                    $json = json_decode((string)$response->getBody());
+                    // If these values don't match, something is very wrong
+                },
+                'rejected' => function (Exception $reason, $index) {
+                    // This callback is delivered each failed request
+                },
+            ]);
+            // Initiate the transfers and create a promise
+            $promise = $pool->promise();
+            // Force the pool of requests to complete
+            $promise->wait();
+
             fclose($fh1);
             fclose($fh2);
         } catch (Exception $e) {

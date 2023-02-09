@@ -4,28 +4,18 @@ require __DIR__ . '/vendor/autoload.php';
 
 use Anhduc\ProxyCheck\proxy;
 
-$short_options = "h::s::S::H::a::u:f:o:i:";
-$long_options = ["help::", "socks4::", "socks5::", "http::", "all::", "url=TARGET:", "proxies-file:", "output-valid", "output-invalid"];
+$short_options = "h::s::S::H::a::u:f:o:i:t:";
+$long_options = ["help::", "socks4::", "socks5::", "http::", "all::", "url=TARGET:",
+    "proxies-file:", "output-valid:", "output-invalid:", "thread:"];
 $options = getopt($short_options, $long_options);
 //var_dump($options);
 $proxyObject = new proxy();
-//$proxyObject->setProxyFile("./proxy_list.txt");
-//$proxyObject->setProxyValidFile("./proxy_valid.txt");
-//$proxyObject->setProxyInvalidFilesetProxyInvalidFile("./proxy_invalid.txt");
+$proxyObject->setProxyFile("./proxy_list.txt");
+$proxyObject->setProxyValidFile("./proxy_valid.txt");
+$proxyObject->setProxyInvalidFile("./proxy_invalid.txt");
 
 $proxyObject->setUrlToTest("http://google.fr");
-
-if (isset($options['f']) || isset($options["proxyFile"])):
-    $proxyObject->setProxyFile($options['f']);
-endif;
-
-if (isset($options['o']) || isset($options["output-valid"])):
-    $proxyObject->setProxyValidFile($options['o']);
-endif;
-
-if (isset($options['i']) || isset($options["output-invalid"])) {
-    $proxyObject->setProxyInvalidFile($options['i']);
-}
+$proxyObject->setThread(5);
 if (isset($options['h']) || isset($options["help"])):
     echo "        
 -h, --help                   Show this help
@@ -47,8 +37,25 @@ if (isset($options['h']) || isset($options["help"])):
 -v, --version                Print version and exit
     ";
 endif;
+if (isset($options['t']) || isset($options["thread"])) {
+    if (isset($options['t'])) {
+        $proxyObject->setThread($options['t']);
+    } else if (isset($options['thread'])) {
+        $proxyObject->setThread($options['thread']);
+    }
+}
 
+if (isset($options['f']) || isset($options["proxyFile"])):
+    $proxyObject->setProxyFile($options['f']);
+endif;
 
+if (isset($options['o']) || isset($options["output-valid"])):
+    $proxyObject->setProxyValidFile($options['o']);
+endif;
+
+if (isset($options['i']) || isset($options["output-invalid"])) {
+    $proxyObject->setProxyInvalidFile($options['i']);
+}
 
 if (isset($options['s']) || isset($options["socks4"])):
     echo('Start check proxy list ..' . "\n");

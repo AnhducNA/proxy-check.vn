@@ -2,6 +2,13 @@
 
 namespace Anhduc\ProxyCheck;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Pool;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
+use Illuminate\Support\Collection;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputDefinition;
 use Symfony\Component\Console\Input\InputInterface;
@@ -28,6 +35,8 @@ class ProxyCheckerCommand extends Command
     //-i, --output-invalid=FILE    File to write in valid proxies
     //-v, --version                Print version and exit
 
+    protected static $defaultName = 'check';
+
     protected function configure()
     {
         $this
@@ -42,6 +51,44 @@ class ProxyCheckerCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        // ...
+        $proxies = $this->loadProxiesFromFile('');
+
+        $client = new Client(['timeout' => 10]);
+        $uri = 'https://ipinfo.io/json';
+
+        $proxies->map(function (Proxy $proxy) use ($client, $uri, $output) {
+            $output->writeln($proxy->proxy);
+            try {
+                $client->request('GET', $uri, ['proxy' => $proxy->name]);
+                $proxy->is_available = true;
+            } catch (GuzzleException $e) {
+                $proxy->is_available = false;
+            }
+        });
+
+        dd($proxies);
+
+        //save valid to file
+
+        //save invalid to file
+    }
+
+    public function loadProxiesFromFile(string $path) {
+        $proxies = [
+            '23.254.100.211:8800',
+            '104.227.229.216:8800',
+            '23.254.10.184:8800',
+        ];
+        $collection = new Collection([]);
+        foreach ($proxies as $proxy) {
+            $proxy = new Proxy($proxy, 'http', $proxy);
+            $collection->add($proxy);
+        }
+
+        return $collection;
+    }
+
+    public function saveProxiesToFile(Collection $proxies, string $path) {
+
     }
 }

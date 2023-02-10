@@ -6,7 +6,7 @@ use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
 
-class Proxy
+class ProxyI
 {
     public function __construct(
         public string $name = '',

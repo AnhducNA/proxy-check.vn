@@ -56,7 +56,7 @@ class ProxyCheckerCommand extends Command
         $client = new Client(['timeout' => 10]);
         $uri = 'https://ipinfo.io/json';
 
-        $proxies->map(function (Proxy $proxy) use ($client, $uri, $output) {
+        $proxies->map(function (ProxyI $proxy) use ($client, $uri, $output) {
             $output->writeln($proxy->proxy);
             try {
                 $client->request('GET', $uri, ['proxy' => $proxy->name]);
@@ -81,7 +81,7 @@ class ProxyCheckerCommand extends Command
         ];
         $collection = new Collection([]);
         foreach ($proxies as $proxy) {
-            $proxy = new Proxy($proxy, 'http', $proxy);
+            $proxy = new ProxyI($proxy, 'http', $proxy);
             $collection->add($proxy);
         }
 

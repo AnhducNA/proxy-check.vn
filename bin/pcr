@@ -1,7 +1,6 @@
 #!/usr/bin/env php
 <?php
 // application.php
-
 function includeIfExists(string $file): bool
 {
     return file_exists($file) && include $file;

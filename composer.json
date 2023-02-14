@@ -14,7 +14,7 @@
         "php": "^8.0",
         "ext-curl": "*",
         "guzzlehttp/guzzle": "^7.5",
-        "symfony/console": "^6.0",
+        "symfony/console": "^6.2",
         "illuminate/collections": "^9.51",
         "symfony/var-dumper": "^6.0"
     }
